@@ -1,0 +1,106 @@
+----------
+ 
+import java.util.ArrayList;
+import java.util.List;
+ 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.collections.PredicateUtils;
+ 
+/**
+ * 根据对象属性值过滤集合数据 
+ */
+public class FilterList {
+ 
+	public static void main(String[] args) {
+		
+		List<User> userList = new ArrayList<User>();
+ 
+		userList.add(new User("李小龙", "男", 74));
+		userList.add(new User("李连杰", "男", 54));
+		userList.add(new User("刘亦菲", "女", 29));
+		userList.add(new User("杨紫琼", "女", 51));
+ 
+		// 过滤多个属性值
+		Predicate filter1 = new MyPredicate("username", "李连杰");
+		Predicate filter2 = new MyPredicate("age", 54);
+		Predicate filter3 = new MyPredicate("gender", "男");
+ 
+		Predicate any1 = PredicateUtils.andPredicate(filter1, filter2);
+		Predicate any2 = PredicateUtils.andPredicate(any1, filter3);
+ 
+		@SuppressWarnings("unchecked")
+		List<User> list = (List<User>) CollectionUtils.select(userList, any2);
+		System.out.println("筛选属性后结果集:\n" + list);
+ 
+		@SuppressWarnings("unchecked")
+		List<User> rejectList = (List<User>) CollectionUtils.selectRejected(
+				userList, filter3);
+		System.out.println("筛选属性后结果集补集:\n" + rejectList);
+		
+ 
+	}
+ 
+}
+
+---------------
+ 
+import java.math.BigDecimal;
+ 
+import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.collections.Predicate;
+ 
+public class MyPredicate implements Predicate {
+ 
+	private String property;
+ 
+	private Object value;
+ 
+	public MyPredicate(String property, Object value) {
+		this.property = property;
+		this.value = value;
+	}
+ 
+	public boolean evaluate(Object object) {
+		// TODO Auto-generated method stub
+		try {
+			Object beanValue;
+			if (property.indexOf(".") > 0) {
+				beanValue = PropertyUtils.getNestedProperty(object, property);
+			} else {
+				beanValue = PropertyUtils.getProperty(object, property);
+			}
+			if (beanValue == null) {
+				return false;
+			}
+			if (!value.getClass().equals(beanValue.getClass())) {
+				throw new RuntimeException("value.class!=beanValue.class");
+			}
+			return myCompare(beanValue, value);
+ 
+		} catch (Exception e) {
+			throw new RuntimeException(e.getMessage(), e.getCause());
+		}
+	}
+ 
+	private boolean myCompare(Object value, Object beanValue) {
+		if (beanValue.getClass().equals(Integer.class)) {
+			if (((Integer) beanValue).equals(value)) {
+				return true;
+			}
+		}
+		if (beanValue.getClass().equals(BigDecimal.class)) {
+			if (((BigDecimal) beanValue).compareTo((BigDecimal) value) == 0) {
+				return true;
+			}
+		}
+		if (beanValue.getClass().equals(String.class)) {
+			if (beanValue.toString().equals(value.toString())) {
+				return true;
+			}
+		}
+		return false;
+	}
+ 
+}
+-------------
